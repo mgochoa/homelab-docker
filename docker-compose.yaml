@@ -1,0 +1,75 @@
+services:
+  nginxproxymanager:
+    image: 'jc21/nginx-proxy-manager:latest' 
+    container_name: nginxproxymanager
+    restart: unless-stopped 
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443' 
+    volumes:
+      - ./nginx/data:/data
+      - ./nginx/letsencrypt:/etc/letsencrypt 
+
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin 
+    volumes:
+      - ./nextcloud/appdata:/config 
+      - ./nextcloud/data:/data
+    restart: unless-stopped 
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin 
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin 
+    volumes:
+      - ./jellyfin/config:/config
+      - ./jellyfin/tvshows:/data/tvshows
+      - ./jellyfin/movies:/data/movies 
+    restart: unless-stopped
+
+  homepage:
+    image: homepage:v1
+    container_name: homepage
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin 
+    restart: unless-stopped
+
+  bitwarden:
+    container_name: bitwarden
+    depends_on:
+      - mariadb
+    env_file:
+      - settings.env
+    image: ghcr.io/bitwarden/self-host:beta
+    restart: unless-stopped
+    volumes:
+      - ./bitwarden/bitwarden:/etc/bitwarden
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Berlin 
+
+  mariadb:
+    environment:
+      MARIADB_USER: "bitwarden"
+      MARIADB_PASSWORD: "super_strong_password"
+      MARIADB_DATABASE: "bitwarden_vault"
+      MARIADB_RANDOM_ROOT_PASSWORD: "true"
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Berlin 
+    image: mariadb:10
+    restart: unless-stopped
+    volumes:
+      - ./bitwarden/data:/var/lib/mysql
