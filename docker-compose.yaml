@@ -45,34 +45,27 @@ services:
       - TZ=Europe/Berlin 
     restart: unless-stopped
 
-  # bitwarden:
-  #   container_name: bitwarden
-  #   depends_on:
-  #     - mariadb
-  #   env_file:
-  #     - settings.env
-  #   image: ghcr.io/bitwarden/self-host:beta
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./bitwarden/bitwarden:/etc/bitwarden
-  #   environment:
-  #     - PUID=1000
-  #     - PGID=1000
-  #     - TZ=Europe/Berlin 
-  #
-  # mariadb:
-  #   environment:
-  #     MARIADB_USER: "bitwarden"
-  #     MARIADB_PASSWORD: "super_strong_password"
-  #     MARIADB_DATABASE: "bitwarden_vault"
-  #     MARIADB_RANDOM_ROOT_PASSWORD: "true"
-  #     PUID: 1000
-  #     PGID: 1000
-  #     TZ: Europe/Berlin 
-  #   image: mariadb:10
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./bitwarden/data:/var/lib/mysql
+  bitwarden:
+    depends_on:
+      - db
+    env_file:
+      - ./settings.env
+    image: ghcr.io/bitwarden/self-host:beta
+    restart: always
+    mem_limit: 200m
+    volumes:
+      - ./bitwarden/bitwarden:/etc/bitwarden
+      - ./bitwarden/logs:/var/log/bitwarden
+  db:
+    environment:
+      MARIADB_USER: "bitwarden"
+      MARIADB_PASSWORD: "super_strong_password"
+      MARIADB_DATABASE: "bitwarden_vault"
+      MARIADB_RANDOM_ROOT_PASSWORD: "true"
+    image: mariadb:10
+    restart: always
+    volumes:
+      - ./bitwarden/data:/var/lib/mysql
 
   # pihole:
   #   container_name: pihole

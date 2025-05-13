@@ -5,3 +5,4 @@ nginx/
 pihole/
 openwebui/
 ollama/
+settings.env
