@@ -52,7 +52,6 @@ services:
       - ./settings.env
     image: ghcr.io/bitwarden/self-host:beta
     restart: always
-    mem_limit: 200m
     volumes:
       - ./bitwarden/bitwarden:/etc/bitwarden
       - ./bitwarden/logs:/var/log/bitwarden
