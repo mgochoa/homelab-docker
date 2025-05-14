@@ -5,4 +5,5 @@ nginx/
 pihole/
 openwebui/
 ollama/
+smokeping/
 settings.env
