@@ -6,4 +6,7 @@ pihole/
 openwebui/
 ollama/
 smokeping/
+prowlarr/
+qbittorrent/
+sonarr/
 settings.env
