@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bitwarden-db-credentials
+type: Opaque
+stringData:
+  MARIADB_USER: "bitwarden"
+  MARIADB_PASSWORD: "super_strong_password"  # Change this!
+  MARIADB_DATABASE: "bitwarden_vault"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bitwarden-db-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: openebs-db
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bitwarden-db
+spec:
+  serviceName: bitwarden-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bitwarden-db
+  template:
+    metadata:
+      labels:
+        app: bitwarden-db
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb:10
+        envFrom:
+        - secretRef:
+            name: bitwarden-db-credentials
+        env:
+        - name: MARIADB_RANDOM_ROOT_PASSWORD
+          value: "true"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: bitwarden-db-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bitwarden-db
+spec:
+  selector:
+    app: bitwarden-db
+  ports:
+  - port: 3306
+    targetPort: 3306
