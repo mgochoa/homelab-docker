@@ -28,11 +28,16 @@ metadata:
 spec:
   tls:
   - hosts:
-    - molg.duckdns.org
-    - nextcloud.molg.duckdns.org
+    - molg.example.com
+    - nextcloud.molg.example.com
+    - n8n.molg.example.com
+    - bitwarden.molg.example.com
+    - jellyfin.molg.example.com
+    - ollama.molg.example.com
+    - smokeping.molg.example.com
     secretName: molg-tls
   rules:
-  - host: molg.duckdns.org
+  - host: molg.example.com
     http:
       paths:
       - path: /
@@ -42,7 +47,7 @@ spec:
             name: homepage
             port:
               number: 3000
-  - host: nextcloud.molg.duckdns.org
+  - host: nextcloud.molg.example.com
     http:
       paths:
       - path: /
