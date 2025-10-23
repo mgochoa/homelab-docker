@@ -13,3 +13,4 @@ settings.env
 homepage/config/logs
 nzbget/data
 homepage/config
+.env

@@ -78,8 +78,6 @@ services:
     image: ollama/ollama
     container_name: ollama
     restart: unless-stopped
-    ports:
-      - "11434:11434"
     volumes:
       - ./ollama:/root/.ollama
     deploy:
@@ -92,9 +90,6 @@ services:
     image: ghcr.io/open-webui/open-webui:main
     container_name: openwebui
     restart: unless-stopped
-    # It can be opened in localhost as well
-    ports:
-      - "3000:8080"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
     volumes:
@@ -112,8 +107,6 @@ services:
     volumes:
       - ./smokeping/config:/config
       - ./smokeping/data:/data
-    ports:
-      - 8099:80
     mem_limit: 4096m
     restart: unless-stopped
 
@@ -192,3 +185,70 @@ services:
       - ./homepage/config:/app/config 
       - /var/run/docker.sock:/var/run/docker.sock:ro 
     restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - POSTGRES_NON_ROOT_USER
+      - POSTGRES_NON_ROOT_PASSWORD
+    volumes:
+      - ./n8n/db_storage:/var/lib/postgresql/data
+      - ./n8n/init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    restart: always
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_NON_ROOT_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_NON_ROOT_PASSWORD}
+      - VUE_APP_URL_BASE_API=https://n8n.molg.duckdns.org
+    ports:
+      - 5678:5678
+    links:
+      - postgres
+    volumes:
+      - ./n8n/n8n_storage:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+  # mumble-server:
+  #   image: mumblevoip/mumble-server:latest
+  #   container_name: mumble-server
+  #   hostname: mumble-server
+  #   restart: on-failure
+  #   ports:
+  #       - 64738:64738
+  #       - 64738:64738/udp
+  #   volumes:
+  #     - ./mumble/data:/data
+
+  # monitoring:
+  #   image: nicolargo/glances:latest-full
+  #   pid: host
+  #   network_mode: host
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   environment:
+  #     - "GLANCES_OPT=-w"
+  #   # For nvidia GPUs
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+  #
