@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nextcloud
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://nextcloud.github.io/helm/
+    chart: nextcloud
+    targetRevision: 3.5.13
+    helm:
+      values: |
+        image:
+          repository: nextcloud
+          tag: latest
+        nextcloud:
+          host: nextcloud.molg.example.com
+          username: admin
+          configs:
+            custom.config.php: |-
+              <?php
+              $CONFIG = array(
+                'trusted_domains' => array(
+                  'nextcloud.molg.example.com'
+                ),
+              );
+        persistence:
+          enabled: true
+          existingClaim: nextcloud-data
+        ingress:
+          enabled: true
+          className: nginx
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          tls:
+            - secretName: nextcloud-tls
+              hosts:
+                - nextcloud.molg.example.com

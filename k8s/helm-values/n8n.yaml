@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: n8n
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://n8n-io.github.io/n8n-helm-chart/
+    chart: n8n
+    targetRevision: 0.6.0
+    helm:
+      values: |
+        image:
+          repository: n8nio/n8n
+          tag: latest
+        persistence:
+          enabled: true
+          existingClaim: n8n-storage
+        postgresql:
+          enabled: true
+          persistence:
+            existingClaim: n8n-db-data
+          auth:
+            username: n8n
+            database: n8n
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: n8n.molg.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - secretName: n8n-tls
+              hosts:
+                - n8n.molg.example.com

@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: homepage
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://jameswynn.github.io/helm-charts
+    chart: homepage
+    targetRevision: 1.2.6
+    helm:
+      values: |
+        image:
+          repository: ghcr.io/gethomepage/homepage
+          tag: latest
+        env:
+          - name: PUID
+            value: "1000"
+          - name: PGID
+            value: "1000"
+          - name: HOMEPAGE_ALLOWED_HOSTS
+            value: homepage.molg.example.com
+        persistence:
+          config:
+            enabled: true
+            existingClaim: homepage-config
+        ingress:
+          enabled: true
+          className: nginx
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          hosts:
+            - host: homepage.molg.example.com
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - secretName: homepage-tls
+              hosts:
+                - homepage.molg.example.com

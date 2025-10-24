@@ -7,8 +7,12 @@ Overview
 - Kind cluster configuration: `k8s/kind-config.yaml`
 - Ingress + TLS (cert-manager + Cloudflare): `k8s/base/ingress.yaml`, `k8s/base/cert-manager.yaml`
 - OpenEBS storage classes and setup: `k8s/base/storage-classes.yaml`, `k8s/setup-openebs.sh`
-- App manifests: `k8s/apps/*.yaml` (services, PVCs, Deployments/StatefulSets)
+- ArgoCD GitOps deployment: `k8s/base/argocd.yaml`
+- Helm-based applications: `k8s/helm-values/*.yaml`
+- Legacy app manifests: `k8s/apps/*.yaml` (for non-Helm applications)
 - Helper scripts: `k8s/setup.sh`, `k8s/setup-openebs.sh`, `k8s/update-storage.sh`
+
+For detailed ArgoCD setup and usage, see [ArgoCD Setup Guide](k8s/ARGOCD.md)
 
 Quick notes
 -----------
@@ -163,36 +167,52 @@ AI & Automation:
 Monitoring:
 - Smokeping (Network latency monitoring)
 
-Deployment Order
----------------
-Apply the applications in the following recommended order:
-
-1. Databases first:
-```yaml
-kubectl apply -f apps/bitwarden-db.yaml
-kubectl apply -f apps/n8n-db.yaml
+Deployment with ArgoCD
+--------------------
+1. Install ArgoCD:
+```bash
+kubectl apply -f k8s/base/argocd.yaml
 ```
 
-2. Core services:
-```yaml
-kubectl apply -f apps/homepage.yaml
+2. Wait for ArgoCD to be ready:
+```bash
+kubectl wait --for=condition=available deployment -l app.kubernetes.io/name=argocd-server -n argocd
 ```
 
-3. Applications with dependencies:
-```yaml
-# Base applications
-kubectl apply -f apps/bitwarden.yaml
-kubectl apply -f apps/nextcloud.yaml
-kubectl apply -f apps/jellyfin.yaml
-
-# AI and automation stack
-kubectl apply -f apps/ollama.yaml
-kubectl apply -f apps/openwebui.yaml
-kubectl apply -f apps/n8n.yaml
-
-# Monitoring
-kubectl apply -f apps/smokeping.yaml
+3. Deploy the ApplicationSet:
+```bash
+kubectl apply -f k8s/base/applicationset.yaml
 ```
+
+4. Get the initial admin password:
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+5. Access ArgoCD UI at: https://argocd.molg.example.com
+
+The ApplicationSet will automatically create and manage all applications in the cluster.
+
+Available Applications (Helm Charts)
+---------------------------------
+The following applications are managed via Helm charts:
+
+1. Core Services:
+   - Homepage (`helm-values/homepage.yaml`)
+   - Bitwarden (`helm-values/bitwarden.yaml`)
+
+2. Storage & Media:
+   - Nextcloud (`helm-values/nextcloud.yaml`)
+   - Jellyfin (`helm-values/jellyfin.yaml`)
+
+3. Automation & Monitoring:
+   - N8N (`helm-values/n8n.yaml`)
+   - Smokeping (`helm-values/smokeping.yaml`)
+
+4. Manual Applications:
+   - Ollama and OpenWebUI (no official Helm charts available)
+   
+Applications will be automatically deployed and managed by ArgoCD based on the repository state.
 
 Important Storage Notes
 ---------------------

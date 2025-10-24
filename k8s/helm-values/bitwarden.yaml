@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bitwarden
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://k8s-at-home.com/charts/
+    chart: vaultwarden
+    targetRevision: 4.3.2
+    helm:
+      values: |
+        image:
+          repository: vaultwarden/server
+          tag: latest
+        env:
+          TZ: "Europe/Amsterdam"
+        persistence:
+          config:
+            enabled: true
+            existingClaim: bitwarden-config
+          data:
+            enabled: true
+            existingClaim: bitwarden-data
+        mariadb:
+          enabled: true
+          primary:
+            persistence:
+              existingClaim: bitwarden-db-data
+          auth:
+            database: bitwarden_vault
+            username: bitwarden
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

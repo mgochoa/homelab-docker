@@ -1,0 +1,98 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: homelab-apps
+  namespace: argocd
+spec:
+  generators:
+    - list:
+        elements:
+          # Core Services
+          - name: homepage
+            chart: homepage
+            repoURL: https://jameswynn.github.io/helm-charts
+            version: 1.2.6
+            namespace: default
+            
+          - name: bitwarden
+            chart: vaultwarden
+            repoURL: https://k8s-at-home.com/charts/
+            version: 4.3.2
+            namespace: default
+
+          # Storage & Media
+          - name: nextcloud
+            chart: nextcloud
+            repoURL: https://nextcloud.github.io/helm/
+            version: 3.5.13
+            namespace: default
+
+          - name: jellyfin
+            chart: jellyfin
+            repoURL: https://k8s-at-home.com/charts/
+            version: 9.5.1
+            namespace: default
+
+          # Automation & Monitoring
+          - name: n8n
+            chart: n8n
+            repoURL: https://n8n-io.github.io/n8n-helm-chart/
+            version: 0.6.0
+            namespace: default
+
+          - name: smokeping
+            chart: smokeping
+            repoURL: https://k8s-at-home.com/charts/
+            version: 5.3.2
+            namespace: default
+
+          # Non-Helm Apps (using git source)
+          - name: ollama
+            path: k8s/apps/ollama.yaml
+            repoURL: https://github.com/mgochoa/homelab-docker.git
+            type: git
+            namespace: default
+
+          - name: openwebui
+            path: k8s/apps/openwebui.yaml
+            repoURL: https://github.com/mgochoa/homelab-docker.git
+            type: git
+            namespace: default
+
+  template:
+    metadata:
+      name: '{{name}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/managed-by: argocd
+    spec:
+      project: default
+      source:
+        {{- if eq .type "git" }}
+        repoURL: '{{repoURL}}'
+        targetRevision: main
+        path: '{{path}}'
+        {{- else }}
+        repoURL: '{{repoURL}}'
+        targetRevision: '{{version}}'
+        chart: '{{chart}}'
+        helm:
+          valueFiles:
+            - ../../helm-values/{{name}}.yaml
+        {{- end }}
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+      retry:
+        limit: 5
+        backoff:
+          duration: 5s
+          maxDuration: 3m0s
+          factor: 2
